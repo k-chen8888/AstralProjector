@@ -3,6 +3,9 @@ using System.Collections;
 
 public class CameraController : MonoBehaviour
 {
+    // The currently active camera
+    private Camera active;
+
 	// Information about the GameObject being tracked
 	public GameObject trace = null;
 	
@@ -12,23 +15,23 @@ public class CameraController : MonoBehaviour
 	
 	// Camera movement
 	public float moveSpeed = 0.5f;
-    public float jumpSpeed = 10.0f;
+    public float jumpSpeed = 500.0f;
 	[Range(0, 2 * Mathf.PI)]
 	public float pitchSpeed = Mathf.PI / 4.0f;
 	[Range(0, 2 * Mathf.PI)]
 	public float yawSpeed = Mathf.PI / 4.0f;
 
-
     // Default location
     enum CameraMode { FirstPerson, ThirdPerson, God };
-    public Vector3 firstPerson;
-	public Vector3 thirdPerson;
-    public Vector3 god;
+    public Vector3[] views = new Vector3[3];
     private int moveToMode = -1;
-    private int isMode = (int)CameraMode.FirstPerson;
+    private int isMode = (int)CameraMode.FirstPerson; // Game starts in first person
     private float percentTravelled = 1.0f;
 
+    // 3 cameras that the script can switch between to change views
+    public Camera[] cameras = new Camera[3];
 
+    
     /* Variables for Utilities */
 
     // Easing function
@@ -39,10 +42,24 @@ public class CameraController : MonoBehaviour
     // Use this for initialization
     void Start()
 	{
-		firstPerson = offset = transform.position - (trace == null ? Vector3.zero : trace.transform.position);
+        // Get the currently active camera
+        if (cameras[isMode] != null)
+        {
+            active = cameras[isMode];
+        }
+        else
+        {
+            active = this.GetComponent<Camera>();
+        }
+
+        // Get an offset from a tracked object
+		offset = transform.position - (trace == null ? Vector3.zero : trace.transform.position);
 
         // Assume the camera starts out in first person
-        firstPerson = transform.position;
+        if (views[0] == Vector3.zero)
+        {
+            views[0] = transform.position;
+        }
 
         // Move the camera with arrow keys, or vertically with keybindings
         StartCoroutine(MoveCamera());
@@ -53,6 +70,9 @@ public class CameraController : MonoBehaviour
         // Smooth camera movement between pre-defined waypoints
         StartCoroutine(ModeChange());
         StartCoroutine(MoveToWaypoint());
+
+        // Switch camera view between designated cameras
+        StartCoroutine(SwitchCamera());
     }
 	
 	// Update is called once every frame
@@ -64,8 +84,11 @@ public class CameraController : MonoBehaviour
 	// LateUpdate is called after everything else updates
 	void LateUpdate()
 	{
-		// If the camera is tracking a player or an object, follow that object
-		if (trace != null) transform.position = trace.transform.position + offset;
+        // If the camera is tracking a player or an object, follow that object if the camera is near it (use an error of 0.5f for comparing distance)
+        if (trace != null && Vector3.Distance(active.transform.position, trace.transform.position) < Vector3.Distance(offset, Vector3.zero) + 0.5f)
+        {
+            active.transform.position = trace.transform.position + offset;
+        }
 	}
 
     
@@ -82,7 +105,7 @@ public class CameraController : MonoBehaviour
                 float moveVertical = Input.GetAxis("CameraVertical");
                 float moveUpDown = Input.GetAxis("CameraUpDown"); // Set this in the InputManager
 
-                transform.position += new Vector3(moveHorizontal, moveUpDown, moveVertical) * moveSpeed;
+                active.transform.position += new Vector3(moveHorizontal, moveUpDown, moveVertical) * moveSpeed;
             }
 
             yield return null;
@@ -97,7 +120,7 @@ public class CameraController : MonoBehaviour
             if (percentTravelled >= 1.0)
             {
                 pitch -= pitchSpeed * Input.GetAxis("Mouse Y");
-                transform.eulerAngles = new Vector3(pitch, 0.0f, 0.0f);
+                active.transform.eulerAngles = new Vector3(pitch, 0.0f, 0.0f);
             }
 
             yield return null;
@@ -143,6 +166,12 @@ public class CameraController : MonoBehaviour
             // Perform movement
             if (percentTravelled < 1.0f)
             {
+                if (percentTravelled == 0 && moveToMode != (int)CameraMode.God)
+                {
+                    pitch = 0.0f;
+                    active.transform.eulerAngles = new Vector3(pitch, 0.0f, 0.0f);
+                }
+
                 // Calculate easing between current and target locations
                 percentTravelled += (Time.deltaTime * jumpSpeed) / moveDistance;
                 percentTravelled = Mathf.Clamp01(percentTravelled);
@@ -152,7 +181,7 @@ public class CameraController : MonoBehaviour
                 Vector3 newPos = Vector3.Lerp(startLocation, targetLocation, easedPercent);
 
                 // Move to the new position and immediately go to the next iteration
-                transform.position = newPos;
+                active.transform.position = newPos;
 
                 // Reset variables when done moving
                 if (percentTravelled >= 1)
@@ -177,27 +206,14 @@ public class CameraController : MonoBehaviour
             else
             {
                 startLocation = offset;
-                // Calculate distance to destination
-                if (isMode != moveToMode && moveToMode == (int)CameraMode.ThirdPerson)
+                
+                // Change the camera mode by moving if (1) there is an intent to move, and (2) there is no camera for the current mode OR there is no camera for the desired mode
+                // Allow recentering on the current view by moving if the user moves the camera away from the starting point of the view (with an error of .5f) and presses the button for the current view
+                if (moveToMode > -1 && Vector3.Distance(active.transform.position, views[moveToMode]) > 0.5f && (cameras[isMode] != null || cameras[moveToMode] == null))
                 {
-                    targetLocation = thirdPerson;
-                    moveDistance = Vector3.Distance(transform.position, thirdPerson);
-                    
-                    // Set things in motion
-                    percentTravelled = 0.0f;
-                }
-                else if (isMode != moveToMode && moveToMode == (int)CameraMode.God)
-                {
-                    targetLocation = god;
-                    moveDistance = Vector3.Distance(transform.position, god);
-                    
-                    // Set things in motion
-                    percentTravelled = 0.0f;
-                }
-                else if (isMode != moveToMode && moveToMode == (int)CameraMode.FirstPerson)
-                {
-                    targetLocation = firstPerson;
-                    moveDistance = Vector3.Distance(transform.position, firstPerson);
+                    // Calculate distance to new location
+                    targetLocation = views[moveToMode];
+                    moveDistance = Vector3.Distance(active.transform.position, targetLocation);
                     
                     // Set things in motion
                     percentTravelled = 0.0f;
@@ -210,6 +226,22 @@ public class CameraController : MonoBehaviour
                 
                 yield return null;
             }
+        }
+    }
+
+    // Changes the camera to the one that represents the desired view (First person, Third person, and God)
+    IEnumerator SwitchCamera()
+    {
+        while (true)
+        {
+            // Check if the switch should happen
+            if (moveToMode != isMode && moveToMode > -1 && cameras[moveToMode] != null)
+            {
+                active = cameras[moveToMode];
+                isMode = moveToMode;
+            }
+
+            yield return null;
         }
     }
 

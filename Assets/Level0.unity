@@ -772,12 +772,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   trace: {fileID: 0}
   moveSpeed: 0.5
-  jumpSpeed: 100
+  jumpSpeed: 500
   pitchSpeed: 0.7853982
   yawSpeed: 0.7853982
-  firstPerson: {x: 45, y: 1.5, z: -45}
-  thirdPerson: {x: 47.5, y: 2.5, z: -55}
-  god: {x: 80, y: 350, z: -20}
+  views:
+  - {x: 45, y: 1.5, z: -45}
+  - {x: 47.5, y: 2.5, z: -55}
+  - {x: 80, y: 350, z: -20}
+  cameras:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   easeFactor: 1
 --- !u!1 &1924286015
 GameObject:
