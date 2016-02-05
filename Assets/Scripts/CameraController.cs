@@ -11,7 +11,7 @@ public class CameraController : MonoBehaviour
 	
 	// Initial positions
 	private Vector3 offset;
-	private float pitch = 0.0f;
+	private Vector3 orientation = new Vector3(0.0f, 0.0f, 0.0f); // Vector3(pitch, yaw, roll)
 	
 	// Camera movement
 	public float moveSpeed = 0.5f;
@@ -24,9 +24,11 @@ public class CameraController : MonoBehaviour
     // Default location
     enum CameraMode { FirstPerson, ThirdPerson, God };
     public Vector3[] views = new Vector3[3];
+    public Vector3[] orientations = new Vector3[3];
     private int moveToMode = -1;
     private int isMode = (int)CameraMode.FirstPerson; // Game starts in first person
     private float percentTravelled = 1.0f;
+    private float percentRotated = 1.0f;
 
     // 3 cameras that the script can switch between to change views
     public Camera[] cameras = new Camera[3];
@@ -46,6 +48,15 @@ public class CameraController : MonoBehaviour
         if (cameras[isMode] != null)
         {
             active = cameras[isMode];
+
+            if (cameras[(int)CameraMode.ThirdPerson] != null)
+            {
+                cameras[(int)CameraMode.ThirdPerson].enabled = false;
+            }
+            if (cameras[(int)CameraMode.God] != null)
+            {
+                cameras[(int)CameraMode.God].enabled = false;
+            }
         }
         else
         {
@@ -119,8 +130,8 @@ public class CameraController : MonoBehaviour
         {
             if (percentTravelled >= 1.0)
             {
-                pitch -= pitchSpeed * Input.GetAxis("Mouse Y");
-                active.transform.eulerAngles = new Vector3(pitch, 0.0f, 0.0f);
+                orientation -= new Vector3(pitchSpeed * Input.GetAxis("Mouse Y"), 0.0f, 0.0f);
+                active.transform.eulerAngles = orientation;
             }
 
             yield return null;
@@ -157,21 +168,18 @@ public class CameraController : MonoBehaviour
     // Move between waypoints (First person, Third person, and God)
     IEnumerator MoveToWaypoint()
     {
-        float moveDistance = 0.0f;
+        float moveDistance = 0.0f,
+              rotateAngle = 0.0f;
         Vector3 startLocation = Vector3.zero,
-                targetLocation = Vector3.zero;
+                targetLocation = Vector3.zero,
+                startRotation = Vector3.zero,
+                targetRotation = Vector3.zero;
 
         while (true)
         {
             // Perform movement
-            if (percentTravelled < 1.0f)
+            if (percentTravelled < 1.0f || percentRotated < 1.0f)
             {
-                if (percentTravelled == 0 && moveToMode != (int)CameraMode.God)
-                {
-                    pitch = 0.0f;
-                    active.transform.eulerAngles = new Vector3(pitch, 0.0f, 0.0f);
-                }
-
                 // Calculate easing between current and target locations
                 percentTravelled += (Time.deltaTime * jumpSpeed) / moveDistance;
                 percentTravelled = Mathf.Clamp01(percentTravelled);
@@ -182,30 +190,34 @@ public class CameraController : MonoBehaviour
 
                 // Move to the new position and immediately go to the next iteration
                 active.transform.position = newPos;
+                
+                // Calculate easing between current and target rotations
+                percentRotated += (Time.deltaTime * jumpSpeed) / rotateAngle;
+                percentRotated = Mathf.Clamp01(percentRotated);
+                float easedPercentRotated = Ease(percentRotated);
+
+                // Calculate new rotation based on easing
+                Vector3 newRot = Vector3.Lerp(startRotation, targetRotation, easedPercentRotated);
+
+                // Move to the new position and immediately go to the next iteration
+                active.transform.eulerAngles = newRot;
 
                 // Reset variables when done moving
-                if (percentTravelled >= 1)
+                if (percentTravelled >= 1 && percentRotated >= 1)
                 {
                     isMode = moveToMode;
                     moveToMode = -1;
                     moveDistance = 0.0f;
-
-                    // God Mode looks down on the plebs
-                    if (isMode == (int)CameraMode.God)
-                    {
-                        pitch = 90.0f;
-                    }
-                    else
-                    {
-                        pitch = 0.0f;
-                    }
+                    rotateAngle = 0.0f;
+                    orientation = active.transform.eulerAngles;
                 }
 
                 yield return null;
             }
             else
             {
-                startLocation = offset;
+                startLocation = active.transform.position;
+                startRotation = orientation;
                 
                 // Change the camera mode by moving if (1) there is an intent to move, and (2) there is no camera for the current mode OR there is no camera for the desired mode
                 // Allow recentering on the current view by moving if the user moves the camera away from the starting point of the view (with an error of .5f) and presses the button for the current view
@@ -213,10 +225,13 @@ public class CameraController : MonoBehaviour
                 {
                     // Calculate distance to new location
                     targetLocation = views[moveToMode];
+                    targetRotation = orientations[moveToMode];
                     moveDistance = Vector3.Distance(active.transform.position, targetLocation);
+                    rotateAngle = Vector3.Distance(orientation, targetRotation);
                     
                     // Set things in motion
                     percentTravelled = 0.0f;
+                    percentRotated = 0.0f;
                 }
                 else
                 {
@@ -237,8 +252,14 @@ public class CameraController : MonoBehaviour
             // Check if the switch should happen
             if (moveToMode != isMode && moveToMode > -1 && cameras[moveToMode] != null)
             {
+                // Change camera view
+                cameras[moveToMode].enabled = true;
+                cameras[isMode].enabled = false;
+
+                // Set active camera and its index
                 active = cameras[moveToMode];
                 isMode = moveToMode;
+
             }
 
             yield return null;
