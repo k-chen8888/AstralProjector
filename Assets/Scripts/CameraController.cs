@@ -114,9 +114,9 @@ public class CameraController : MonoBehaviour
             {
                 float moveHorizontal = Input.GetAxis("CameraHorizontal");
                 float moveVertical = Input.GetAxis("CameraVertical");
-                float moveUpDown = Input.GetAxis("CameraUpDown"); // Set this in the InputManager
+                float moveHeight = Input.GetAxis("CameraHeight"); // Set this in the InputManager
 
-                active.transform.position += new Vector3(moveHorizontal, moveUpDown, moveVertical) * moveSpeed;
+                active.transform.position += new Vector3(moveHorizontal, moveHeight, moveVertical) * moveSpeed;
             }
 
             yield return null;
