@@ -20,7 +20,7 @@ public class CameraController : MonoBehaviour
 	public float moveSpeed = 0.5f;
     public float flySpeed = 500.0f;
 	[Range(0, 2 * Mathf.PI)]
-	public float pitchSpeed = Mathf.PI / 4.0f;
+	public float yawSpeed = Mathf.PI / 4.0f;
 
     // Default location
     enum CameraMode { FirstPerson, ThirdPerson, God };
@@ -128,15 +128,16 @@ public class CameraController : MonoBehaviour
         }
 	}
 
-    // Defines the camera controls (mouse, rotates camera on the y axis ONLY)
+    // Defines the camera controls (mouse movement left and right, rotates camera on the y axis ONLY)
     private IEnumerator RotateCamera()
 	{
         while (true)
         {
             if (percentTravelled >= 1.0)
             {
-                orientation -= new Vector3(pitchSpeed * Input.GetAxis("Mouse Y"), 0.0f, 0.0f);
-                active.transform.eulerAngles = orientation;
+				Vector3 rotation = new Vector3(0.0f, yawSpeed * Input.GetAxis("Mouse X"), 0.0f);
+                orientation -= rotation;
+                active.transform.Rotate(rotation, Space.Self);
             }
 
             yield return null;
