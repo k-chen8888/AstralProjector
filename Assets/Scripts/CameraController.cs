@@ -13,7 +13,7 @@ public class CameraController : MonoBehaviour
 	public GameObject trace = null;
 	
 	// Initial positions
-	private Vector3 offset;
+	private Vector3 offset = Vector3.zero;
 	private Vector3 orientation = new Vector3(0.0f, 0.0f, 0.0f); // Vector3(pitch, yaw, roll)
 	
 	// Camera movement
@@ -99,8 +99,8 @@ public class CameraController : MonoBehaviour
 	// LateUpdate is called after everything else updates
 	void LateUpdate()
 	{
-        // If the camera is tracking a player or an object, follow that object if the camera is near it (use an error of 0.5f for comparing distance)
-        if (trace != null && Vector3.Distance(active.transform.position, trace.transform.position) < Vector3.Distance(offset, Vector3.zero) + 0.5f)
+        // If the camera is tracking a player or an object, follow that object using the offset
+        if (trace != null)
         {
             active.transform.position = trace.transform.position + offset;
         }
@@ -230,7 +230,7 @@ public class CameraController : MonoBehaviour
                 if (moveToMode > -1 && Vector3.Distance(active.transform.position, views[moveToMode]) > 0.5f && (cameras[isMode] != null || cameras[moveToMode] == null))
                 {
                     // Calculate distance to new location
-                    targetLocation = views[moveToMode];
+                    targetLocation = (trace == null ? views[moveToMode] : trace.transform.position + views[moveToMode]);
                     targetRotation = orientations[moveToMode];
                     moveDistance = Vector3.Distance(active.transform.position, targetLocation);
                     rotateAngle = Vector3.Distance(orientation, targetRotation);
