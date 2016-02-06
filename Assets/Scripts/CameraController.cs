@@ -3,6 +3,9 @@ using System.Collections;
 
 public class CameraController : MonoBehaviour
 {
+    // A reference to this object so that other scripts can access its public methods
+    public static CameraController Static;
+
     // The currently active camera
     private Camera active;
 
@@ -15,11 +18,9 @@ public class CameraController : MonoBehaviour
 	
 	// Camera movement
 	public float moveSpeed = 0.5f;
-    public float jumpSpeed = 500.0f;
+    public float flySpeed = 500.0f;
 	[Range(0, 2 * Mathf.PI)]
 	public float pitchSpeed = Mathf.PI / 4.0f;
-	[Range(0, 2 * Mathf.PI)]
-	public float yawSpeed = Mathf.PI / 4.0f;
 
     // Default location
     enum CameraMode { FirstPerson, ThirdPerson, God };
@@ -44,6 +45,9 @@ public class CameraController : MonoBehaviour
     // Use this for initialization
     void Start()
 	{
+        // Expose CameraController to other scripts
+        Static = this;
+
         // Get the currently active camera
         if (cameras[isMode] != null)
         {
@@ -102,11 +106,11 @@ public class CameraController : MonoBehaviour
         }
 	}
 
-    
+
     /* Co-Routines */
 
     // Defines the camera controls (keyboard, moves camera)
-    IEnumerator MoveCamera()
+    private IEnumerator MoveCamera()
 	{
         while (true)
         {
@@ -116,15 +120,16 @@ public class CameraController : MonoBehaviour
                 float moveVertical = Input.GetAxis("CameraVertical");
                 float moveHeight = Input.GetAxis("CameraHeight"); // Set this in the InputManager
 
-                active.transform.position += new Vector3(moveHorizontal, moveHeight, moveVertical) * moveSpeed;
+                if (trace != null) offset += new Vector3(moveHorizontal, moveHeight, moveVertical) * moveSpeed;
+                else active.transform.position += new Vector3(moveHorizontal, moveHeight, moveVertical) * moveSpeed;
             }
 
             yield return null;
         }
 	}
-	
-	// Defines the camera controls (mouse, rotates camera on the y axis ONLY)
-	IEnumerator RotateCamera()
+
+    // Defines the camera controls (mouse, rotates camera on the y axis ONLY)
+    private IEnumerator RotateCamera()
 	{
         while (true)
         {
@@ -139,7 +144,7 @@ public class CameraController : MonoBehaviour
 	}
 
     // Switch camera modes between "First Person," "Third Person," and "God"
-    IEnumerator ModeChange()
+    private IEnumerator ModeChange()
     {
         while (true)
         {
@@ -166,7 +171,7 @@ public class CameraController : MonoBehaviour
     }
 
     // Move between waypoints (First person, Third person, and God)
-    IEnumerator MoveToWaypoint()
+    private IEnumerator MoveToWaypoint()
     {
         float moveDistance = 0.0f,
               rotateAngle = 0.0f;
@@ -181,7 +186,7 @@ public class CameraController : MonoBehaviour
             if (percentTravelled < 1.0f || percentRotated < 1.0f)
             {
                 // Calculate easing between current and target locations
-                percentTravelled += (Time.deltaTime * jumpSpeed) / moveDistance;
+                percentTravelled += (Time.deltaTime * flySpeed) / moveDistance;
                 percentTravelled = Mathf.Clamp01(percentTravelled);
                 float easedPercent = Ease(percentTravelled);
 
@@ -189,10 +194,11 @@ public class CameraController : MonoBehaviour
                 Vector3 newPos = Vector3.Lerp(startLocation, targetLocation, easedPercent);
 
                 // Move to the new position and immediately go to the next iteration
-                active.transform.position = newPos;
+                if (trace != null) offset = newPos - trace.transform.position;
+                else active.transform.position = newPos;
                 
                 // Calculate easing between current and target rotations
-                percentRotated += (Time.deltaTime * jumpSpeed) / rotateAngle;
+                percentRotated += (Time.deltaTime * flySpeed) / rotateAngle;
                 percentRotated = Mathf.Clamp01(percentRotated);
                 float easedPercentRotated = Ease(percentRotated);
 
@@ -245,7 +251,7 @@ public class CameraController : MonoBehaviour
     }
 
     // Changes the camera to the one that represents the desired view (First person, Third person, and God)
-    IEnumerator SwitchCamera()
+    private IEnumerator SwitchCamera()
     {
         while (true)
         {
@@ -276,9 +282,139 @@ public class CameraController : MonoBehaviour
     //  This is a logistic function; as a increases, y increases faster for values of x near .5 and slower for values of x near 0 or 1
     //
     // For animation, 1 < a < 3 is pretty good
-    float Ease(float x)
+    private float Ease(float x)
     {
         float a = easeFactor + 1.0f;
         return Mathf.Pow(x, a) / (Mathf.Pow(x, a) + Mathf.Pow(1 - x, a));
+    }
+
+
+    /* Module static methods
+     * 
+     * Use these to allow other scripts to interact with this module
+     * They can be accessed using CameraController.Static.<MethodName>
+     */
+
+    // Allow the user to change the locations of each of the views
+    // Optionally, move to that view
+    public void SetFirstPersonView(Vector3 newFirstPerson, bool move = false)
+    {
+        views[(int)CameraMode.FirstPerson] = newFirstPerson;
+        if (move) moveToMode = (int)CameraMode.FirstPerson;
+    }
+
+    public void SetThirdPersonView(Vector3 newThirdPerson, bool move = false)
+    {
+        views[(int)CameraMode.ThirdPerson] = newThirdPerson;
+        if (move) moveToMode = (int)CameraMode.ThirdPerson;
+    }
+
+    public void SetGodView(Vector3 newGod, bool move = false)
+    {
+        views[(int)CameraMode.God] = newGod;
+        if (move) moveToMode = (int)CameraMode.God;
+    }
+
+    // Allow the user to change the orientations of each of the views
+    // Optionally, move to that view
+    public void SetFirstPersonOrientation(Vector3 newFirstPersonOrientation, bool move = false)
+    {
+        orientations[(int)CameraMode.FirstPerson] = newFirstPersonOrientation;
+        if (move) moveToMode = (int)CameraMode.FirstPerson;
+    }
+
+    public void SetThirdPersonOrientation(Vector3 newThirdPersonOrientation, bool move = false)
+    {
+        orientations[(int)CameraMode.ThirdPerson] = newThirdPersonOrientation;
+        if (move) moveToMode = (int)CameraMode.ThirdPerson;
+    }
+
+    public void SetGodOrientation(Vector3 newGodOrientation, bool move = false)
+    {
+        orientations[(int)CameraMode.God] = newGodOrientation;
+        if (move) moveToMode = (int)CameraMode.God;
+    }
+
+    // Allow the user to define new cameras to use for each of the views
+    // ALWAYS moves to that view
+    public void SetFirstPersonCamera(Camera newFirstPersonCamera)
+    {
+        cameras[(int)CameraMode.FirstPerson] = newFirstPersonCamera;
+        moveToMode = (int)CameraMode.FirstPerson;
+    }
+
+    public void SetThirdPersonCamera(Camera newThirdPersonCamera)
+    {
+        cameras[(int)CameraMode.ThirdPerson] = newThirdPersonCamera;
+        moveToMode = (int)CameraMode.ThirdPerson;
+    }
+
+    public void SetGodCamera(Camera newGodCamera)
+    {
+        cameras[(int)CameraMode.God] = newGodCamera;
+        moveToMode = (int)CameraMode.ThirdPerson;
+    }
+
+    // Start tracking target object in a particular view
+    // Can specify a new view configuration or use a keyword
+    public void TrackObject(GameObject target, string viewMode = "First Person")
+    {
+        trace = target;
+
+        // Based on the desired view, move the camera to a new position
+        switch (viewMode)
+        {
+            case "First Person":
+                moveToMode = (int)CameraMode.FirstPerson;
+                break;
+
+            case "Third Person":
+                moveToMode = (int)CameraMode.ThirdPerson;
+                break;
+
+            case "God":
+                moveToMode = (int)CameraMode.God;
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    // An overload of TrackObject() that allows the caller to specify a new camera location, orientation, and camera
+    public void TrackObject(GameObject target, Vector3 viewLocation, Vector3 orientation, Camera newCamera = null, string viewMode = "First Person")
+    {
+        trace = target;
+
+        // Based on the desired view and settings, change the parameters and move the camera to a new position
+        switch (viewMode)
+        {
+            case "First Person":
+                views[(int)CameraMode.FirstPerson] = viewLocation;
+                orientations[(int)CameraMode.FirstPerson] = orientation;
+                if (newCamera != null) cameras[(int)CameraMode.FirstPerson] = newCamera;
+                
+                moveToMode = (int)CameraMode.FirstPerson;
+                break;
+            
+            case "Third Person":
+                views[(int)CameraMode.ThirdPerson] = viewLocation;
+                orientations[(int)CameraMode.ThirdPerson] = orientation;
+                if (newCamera != null) cameras[(int)CameraMode.ThirdPerson] = newCamera;
+
+                moveToMode = (int)CameraMode.ThirdPerson;
+                break;
+            
+            case "God":
+                views[(int)CameraMode.God] = viewLocation;
+                orientations[(int)CameraMode.God] = orientation;
+                if (newCamera != null) cameras[(int)CameraMode.God] = newCamera;
+
+                moveToMode = (int)CameraMode.God;
+                break;
+            
+            default:
+                break;
+        }
     }
 }

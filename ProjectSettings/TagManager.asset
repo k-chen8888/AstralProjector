@@ -6,7 +6,7 @@ TagManager:
   tags:
   - Floor
   - Wall
-  - Possessable
+  - FreeBody
   layers:
   - Default
   - TransparentFX
@@ -16,8 +16,8 @@ TagManager:
   - UI
   - 
   - 
-  - 
-  - 
+  - Unpossessable
+  - Possessable
   - 
   - 
   - 

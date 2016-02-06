@@ -97,7 +97,7 @@ GameObject:
   - 33: {fileID: 31964950}
   - 65: {fileID: 31964949}
   - 23: {fileID: 31964948}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Floor4
   m_TagString: Floor
   m_Icon: {fileID: 0}
@@ -172,7 +172,7 @@ GameObject:
   - 33: {fileID: 356120157}
   - 65: {fileID: 356120156}
   - 23: {fileID: 356120155}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Floor6
   m_TagString: Floor
   m_Icon: {fileID: 0}
@@ -247,7 +247,7 @@ GameObject:
   - 33: {fileID: 393454951}
   - 65: {fileID: 393454950}
   - 23: {fileID: 393454949}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Floor3
   m_TagString: Floor
   m_Icon: {fileID: 0}
@@ -322,7 +322,7 @@ GameObject:
   - 33: {fileID: 654938583}
   - 65: {fileID: 654938582}
   - 23: {fileID: 654938581}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Floor0
   m_TagString: Floor
   m_Icon: {fileID: 0}
@@ -458,7 +458,7 @@ GameObject:
   - 33: {fileID: 1554825565}
   - 65: {fileID: 1554825564}
   - 23: {fileID: 1554825563}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Floor1
   m_TagString: Floor
   m_Icon: {fileID: 0}
@@ -534,8 +534,8 @@ GameObject:
   - 65: {fileID: 1605127330}
   - 23: {fileID: 1605127329}
   - 114: {fileID: 1605127333}
-  m_Layer: 0
-  m_Name: Body
+  m_Layer: 9
+  m_Name: BodyF0+45-45
   m_TagString: Possessable
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -609,7 +609,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a167168166bda3746b04980a1ea6bf23, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  possessDistance: 20
   playerCamera: {fileID: 1921108703}
+  possessLayer: 9
 --- !u!1 &1769535770
 GameObject:
   m_ObjectHideFlags: 0
@@ -621,7 +623,7 @@ GameObject:
   - 33: {fileID: 1769535773}
   - 65: {fileID: 1769535772}
   - 23: {fileID: 1769535771}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Floor5
   m_TagString: Floor
   m_Icon: {fileID: 0}
@@ -783,11 +785,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1cbf276c2d9e1114192ae7ef29e535d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Static: {fileID: 0}
   trace: {fileID: 0}
   moveSpeed: 0.5
-  jumpSpeed: 500
+  flySpeed: 500
   pitchSpeed: 0.7853982
-  yawSpeed: 0.7853982
   views:
   - {x: 45, y: 1.5, z: -45}
   - {x: 47.5, y: 2.5, z: -55}
@@ -812,7 +814,7 @@ GameObject:
   - 33: {fileID: 1924286018}
   - 65: {fileID: 1924286017}
   - 23: {fileID: 1924286016}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Floor2
   m_TagString: Floor
   m_Icon: {fileID: 0}
