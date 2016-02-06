@@ -135,7 +135,7 @@ public class CameraController : MonoBehaviour
         {
             if (percentTravelled >= 1.0)
             {
-				Vector3 rotation = new Vector3(0.0f, yawSpeed * Input.GetAxis("Mouse X"), 0.0f);
+				Vector3 rotation = new Vector3(0.0f, yawSpeed * Input.GetAxis("CameraPanLeftRight"), 0.0f);
                 orientation -= rotation;
                 active.transform.Rotate(rotation, Space.Self);
             }
