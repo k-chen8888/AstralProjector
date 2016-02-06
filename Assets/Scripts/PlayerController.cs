@@ -18,8 +18,8 @@ public class PlayerController : MonoBehaviour {
     public int possessLayer = 9;
 
     // Perspectives to use when this object gets possessed
-    public Vector3[] firstPerson = new Vector3[2];
-    public Vector3[] thirdPerson = new Vector3[2];
+    public Vector3[] firstPerson = new Vector3[2] { Vector3.zero, Vector3.zero };
+    public Vector3[] thirdPerson = new Vector3[2] { Vector3.zero, Vector3.zero };
 
     // Initial conditions
     public float resetTimer = 2.0f; // Resets after 2 seconds of not being possessed
@@ -38,7 +38,7 @@ public class PlayerController : MonoBehaviour {
         initialPosition = transform.position;
         initialOrientation = transform.eulerAngles;
 
-        // The object that shares a location with the camera when the game starts is the possessed objects
+        // The object that shares a location with the camera when the game starts is the possessed object
 	    if (playerCamera.transform.position == transform.position)
         {
             possessedObject = transform.gameObject;
@@ -61,6 +61,10 @@ public class PlayerController : MonoBehaviour {
                 // Attempt to possess the object that was hit if it's not already possessed
                 if (possessedObject != hit.transform.gameObject) Possess(hit.transform.gameObject);
             }
+            else
+            {
+                print("Nothing");
+            }
         }
 	}
 
@@ -78,17 +82,27 @@ public class PlayerController : MonoBehaviour {
             if (hit.transform.gameObject == target)
             {
                 possessedObject = target;
-
+                
                 // Adjust the camera so that its first- and third-person perspectives are relative to the new possessed object
-                CameraController.Static.SetThirdPersonView(possessedObject.transform.position + thirdPerson[0]);
-                CameraController.Static.SetThirdPersonOrientation(thirdPerson[1]);
-                CameraController.Static.SetFirstPersonView(possessedObject.transform.position + firstPerson[0]);
-                CameraController.Static.SetFirstPersonOrientation(firstPerson[1], true); // After setting the last one, move the camera
+                CameraController.Static.SetThirdPersonView(possessedObject.transform.position + this.thirdPerson[0]);
+                CameraController.Static.SetThirdPersonOrientation(this.thirdPerson[1]);
+                CameraController.Static.SetFirstPersonView(possessedObject.transform.position + this.firstPerson[0]);
+                CameraController.Static.SetFirstPersonOrientation(this.firstPerson[1], true); // After setting the last orientation, move the camera
 
                 // Turn on gravity and apply any forces
                 rb.useGravity = true;
                 rb.AddForce(initialForce);
             }
+            else
+            {
+                // Notification: Something's in the way
+                print("Something's in the way...");
+            }
+        }
+        else
+        {
+            // Notification: Too far
+            print("Too far...");
         }
     }
 
