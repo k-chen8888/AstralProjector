@@ -80,9 +80,9 @@ public class PlayerController : MonoBehaviour {
                 possessedObject = target;
 
                 // Adjust the camera so that its first- and third-person perspectives are relative to the new possessed object
-                CameraController.Static.SetThirdPersonView(thirdPerson[0]);
+                CameraController.Static.SetThirdPersonView(possessedObject.transform.position + thirdPerson[0]);
                 CameraController.Static.SetThirdPersonOrientation(thirdPerson[1]);
-                CameraController.Static.SetFirstPersonView(firstPerson[0]);
+                CameraController.Static.SetFirstPersonView(possessedObject.transform.position + firstPerson[0]);
                 CameraController.Static.SetFirstPersonOrientation(firstPerson[1], true); // After setting the last one, move the camera
 
                 // Turn on gravity and apply any forces
