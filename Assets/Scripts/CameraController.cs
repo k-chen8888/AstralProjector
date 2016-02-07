@@ -360,7 +360,23 @@ public class CameraController : MonoBehaviour
     public void SetGodCamera(Camera newGodCamera)
     {
         cameras[(int)CameraMode.God] = newGodCamera;
+        moveToMode = (int)CameraMode.God;
+    }
+
+    // Allow the user to programatically go to a target mode
+    public void GoToFirstPerson()
+    {
+        moveToMode = (int)CameraMode.FirstPerson;
+    }
+
+    public void GoToThirdPerson()
+    {
         moveToMode = (int)CameraMode.ThirdPerson;
+    }
+
+    public void GoToGod()
+    {
+        moveToMode = (int)CameraMode.God;
     }
 
     // Start tracking target object in a particular view

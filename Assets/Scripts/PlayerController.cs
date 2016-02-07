@@ -7,6 +7,8 @@ public class PlayerController : MonoBehaviour {
     private static GameObject possessedObject;
     private Rigidbody rb;
     public float possessDistance = 20.0f;
+    public bool possessCooldown = false; // Whether or not you can possess something at the moment
+    public float activateTimer = 3.0f; // After a certain amount of time, the possessed object exhibits physics properties
 
     // The camera that represents the spoopy ghost
     public Camera playerCamera;
@@ -25,7 +27,8 @@ public class PlayerController : MonoBehaviour {
     public float resetTimer = 2.0f; // Resets after 2 seconds of not being possessed
     private Vector3 initialPosition;
     private Vector3 initialOrientation;
-    public Vector3 initialForce = Vector3.zero; // Applies a force on the object when it first gets possessed
+    public Vector3 initialForce = Vector3.zero; // Applies a force on the object when it first gets possessed (direction only)
+    public float initialForceMagnitude = 10.0f; // Magnitude of the initial force
 
     
 	// Use this for initialization
@@ -58,8 +61,16 @@ public class PlayerController : MonoBehaviour {
 
             if (Physics.Raycast(ray, out hit, maxDistance: Mathf.Infinity, layerMask: 1 << possessLayer))
             {
-                // Attempt to possess the object that was hit if it's not already possessed
-                if (possessedObject != hit.transform.gameObject) Possess(hit.transform.gameObject);
+                // Check if on cooldown
+                if (possessCooldown == false)
+                {
+                    // Attempt to possess the object that was hit if it's not already possessed
+                    if (possessedObject != hit.transform.gameObject) Possess(hit.transform.gameObject);
+                }
+                else
+                {
+                    print("On cooldown");
+                }
             }
             else
             {
@@ -82,6 +93,10 @@ public class PlayerController : MonoBehaviour {
         {
             if (hit.transform.gameObject == target)
             {
+                // Reset view
+                CameraController.Static.GoToFirstPerson();
+
+                // A new object has been possessed
                 possessedObject = target;
 
                 // Adjust the camera so that its first- and third-person perspectives are relative to the new possessed object
@@ -89,9 +104,8 @@ public class PlayerController : MonoBehaviour {
                 CameraController.Static.SetThirdPersonOrientation(targetController.thirdPerson[1]);
                 CameraController.Static.TrackObject(target, targetController.firstPerson[0], targetController.firstPerson[1]); // Track the new object
 
-                // Turn on gravity and apply any forces
-                targetController.rb.useGravity = true;
-                targetController.rb.AddForce(initialForce);
+                // Now on cooldown...
+                targetController.possessCooldown = true;
             }
             else
             {
@@ -120,7 +134,7 @@ public class PlayerController : MonoBehaviour {
                 yield return new WaitForSeconds(resetTimer);
 
                 // If it's still not possessed at this time, reset
-                if (possessedObject != this)
+                if (possessedObject != this.transform.gameObject)
                 {
                     // Reset physics
                     rb.useGravity = false;
@@ -131,6 +145,21 @@ public class PlayerController : MonoBehaviour {
                     transform.position = initialPosition;
                     transform.eulerAngles = initialOrientation;
                 }
+            }
+
+            // Check if on cooldown; if so, then get ready to activate physics
+            if (possessCooldown == true)
+            {
+                // Wait for the player to get their bearings
+                yield return new WaitForSeconds(resetTimer);
+
+                // Turn on gravity and apply any forces
+                rb.useGravity = true;
+                print(transform.rotation * Vector3.forward);
+                rb.AddForce(transform.rotation * Vector3.forward * initialForceMagnitude);
+
+                // No longer on cooldown
+                possessCooldown = false;
             }
 
             yield return null;
