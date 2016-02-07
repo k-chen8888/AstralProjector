@@ -11,6 +11,7 @@ public class CameraController : MonoBehaviour
 
 	// Information about the GameObject being tracked
 	public GameObject trace = null;
+	private GameObject newTrace = null;
 	
 	// Initial positions
 	private Vector3 offset = Vector3.zero;
@@ -217,6 +218,12 @@ public class CameraController : MonoBehaviour
                     moveDistance = 0.0f;
                     rotateAngle = 0.0f;
                     orientation = active.transform.eulerAngles;
+					
+					if (newTrace != null)
+					{
+						trace = newTrace;
+						newTrace = null;
+					}
                 }
 
                 yield return null;
@@ -360,7 +367,9 @@ public class CameraController : MonoBehaviour
     // Can specify a new view configuration or use a keyword
     public void TrackObject(GameObject target, string viewMode = "First Person")
     {
-        trace = target;
+		// Get ready to change the trace
+        trace = null;
+		newTrace = target;
 
         // Based on the desired view, move the camera to a new position
         switch (viewMode)
@@ -385,7 +394,9 @@ public class CameraController : MonoBehaviour
     // An overload of TrackObject() that allows the caller to specify a new camera location, orientation, and camera
     public void TrackObject(GameObject target, Vector3 viewLocation, Vector3 orientation, Camera newCamera = null, string viewMode = "First Person")
     {
-        trace = target;
+		// Get ready to change the trace
+        trace = null;
+		newTrace = target;
 
         // Based on the desired view and settings, change the parameters and move the camera to a new position
         switch (viewMode)

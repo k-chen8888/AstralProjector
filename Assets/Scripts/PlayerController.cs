@@ -75,6 +75,7 @@ public class PlayerController : MonoBehaviour {
     void Possess(GameObject target)
     {
         RaycastHit hit;
+        PlayerController targetController = target.GetComponent<PlayerController>();
 
         // Attempt to raycast from the currently possessed object to the target
         if (Physics.Raycast(possessedObject.transform.position, (target.transform.position - possessedObject.transform.position), out hit, possessDistance))
@@ -82,16 +83,15 @@ public class PlayerController : MonoBehaviour {
             if (hit.transform.gameObject == target)
             {
                 possessedObject = target;
-                
+
                 // Adjust the camera so that its first- and third-person perspectives are relative to the new possessed object
-                CameraController.Static.SetThirdPersonView(possessedObject.transform.position + this.thirdPerson[0]);
-                CameraController.Static.SetThirdPersonOrientation(this.thirdPerson[1]);
-                CameraController.Static.SetFirstPersonView(possessedObject.transform.position + this.firstPerson[0]);
-                CameraController.Static.SetFirstPersonOrientation(this.firstPerson[1], true); // After setting the last orientation, move the camera
+                CameraController.Static.SetThirdPersonView(targetController.thirdPerson[0]);
+                CameraController.Static.SetThirdPersonOrientation(targetController.thirdPerson[1]);
+                CameraController.Static.TrackObject(target, targetController.firstPerson[0], targetController.firstPerson[1]); // Track the new object
 
                 // Turn on gravity and apply any forces
-                rb.useGravity = true;
-                rb.AddForce(initialForce);
+                targetController.rb.useGravity = true;
+                targetController.rb.AddForce(initialForce);
             }
             else
             {
@@ -112,25 +112,28 @@ public class PlayerController : MonoBehaviour {
     // Reset an object to its initial state if it hasn't been possessed in a while
     IEnumerator ResetObject()
     {
-        // Check if the object is not in its proper configuration AND it is not currently being possessed
-        if (possessedObject != this && transform.position != initialPosition && transform.eulerAngles != initialOrientation)
+        while (true)
         {
-            yield return new WaitForSeconds(resetTimer);
-
-            // If it's still not possessed at this time, reset
-            if (possessedObject != this)
+            // Check if the object is not in its proper configuration AND it is not currently being possessed
+            if (possessedObject != this && transform.position != initialPosition && transform.eulerAngles != initialOrientation)
             {
-                // Reset physics
-                rb.useGravity = false;
-                rb.velocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
+                yield return new WaitForSeconds(resetTimer);
 
-                // Reset position and orientation
-                transform.position = initialPosition;
-                transform.eulerAngles = initialOrientation;
+                // If it's still not possessed at this time, reset
+                if (possessedObject != this)
+                {
+                    // Reset physics
+                    rb.useGravity = false;
+                    rb.velocity = Vector3.zero;
+                    rb.angularVelocity = Vector3.zero;
+
+                    // Reset position and orientation
+                    transform.position = initialPosition;
+                    transform.eulerAngles = initialOrientation;
+                }
             }
-        }
 
-        yield return null;
+            yield return null;
+        }
     }
 }
