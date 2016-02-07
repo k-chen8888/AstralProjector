@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour {
@@ -27,8 +29,14 @@ public class PlayerController : MonoBehaviour {
     public float resetTimer = 2.0f; // Resets after 2 seconds of not being possessed
     private Vector3 initialPosition;
     private Vector3 initialOrientation;
-    public Vector3 initialForce = Vector3.zero; // Applies a force on the object when it first gets possessed (direction only)
     public float initialForceMagnitude = 10.0f; // Magnitude of the initial force
+
+    // Out of bounds death condition
+    public float floor = -2.0f,
+                 forwardWall = 500.0f,
+                 backwardWall = -500.0f,
+                 leftWall = -500.0f,
+                 rightWall = 500.0f;
 
     
 	// Use this for initialization
@@ -49,7 +57,7 @@ public class PlayerController : MonoBehaviour {
 
         // Object resetter
         StartCoroutine(ResetObject());
-	}
+    }
 	
 	// Update is called once per frame
 	void Update () {
@@ -65,7 +73,10 @@ public class PlayerController : MonoBehaviour {
                 if (possessCooldown == false)
                 {
                     // Attempt to possess the object that was hit if it's not already possessed
-                    if (possessedObject != hit.transform.gameObject) Possess(hit.transform.gameObject);
+                    if (possessedObject != hit.transform.gameObject)
+                    {
+                        Possess(hit.transform.gameObject);
+                    }
                 }
                 else
                 {
@@ -76,6 +87,15 @@ public class PlayerController : MonoBehaviour {
             {
                 print("Nothing");
             }
+        }
+
+        // Check if the possessed object is still in play
+        if (possessedObject.transform.position.y < floor ||
+            possessedObject.transform.position.x > rightWall || possessedObject.transform.position.x < leftWall ||
+            possessedObject.transform.position.z > forwardWall || possessedObject.transform.position.z < backwardWall
+            )
+        {
+            DeathPause.S.PauseDead();
         }
 	}
 
@@ -153,10 +173,17 @@ public class PlayerController : MonoBehaviour {
                 // Wait for the player to get their bearings
                 yield return new WaitForSeconds(resetTimer);
 
-                // Turn on gravity and apply any forces
-                rb.useGravity = true;
-                print(transform.rotation * Vector3.forward);
-                rb.AddForce(transform.rotation * Vector3.forward * initialForceMagnitude);
+                // On reaching the goal, display a victory screen and ask to restart the game
+                if (transform.gameObject.tag == "Goal")
+                {
+                    WinPause.S.PauseWin("Level0");
+                }
+                else
+                {
+                    // Otherwise, turn on gravity and apply any forces
+                    rb.useGravity = true;
+                    rb.AddForce(transform.rotation * Vector3.forward * initialForceMagnitude);
+                }
 
                 // No longer on cooldown
                 possessCooldown = false;
