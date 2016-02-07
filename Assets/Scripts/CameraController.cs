@@ -15,7 +15,6 @@ public class CameraController : MonoBehaviour
 	
 	// Initial positions
 	private Vector3 offset = Vector3.zero;
-	private Vector3 orientation = new Vector3(0.0f, 0.0f, 0.0f); // Vector3(pitch, yaw, roll)
 	
 	// Camera movement
 	public float moveSpeed = 0.5f;
@@ -137,7 +136,6 @@ public class CameraController : MonoBehaviour
             if (percentTravelled >= 1.0)
             {
 				Vector3 rotation = new Vector3(0.0f, yawSpeed * Input.GetAxis("CameraPanLeftRight"), 0.0f);
-                orientation -= rotation;
                 active.transform.Rotate(rotation, Space.Self);
             }
 
@@ -175,17 +173,16 @@ public class CameraController : MonoBehaviour
     // Move between waypoints (First person, Third person, and God)
     private IEnumerator MoveToWaypoint()
     {
-        float moveDistance = 0.0f,
-              rotateAngle = 0.0f;
+        float moveDistance = 0.0f;
         Vector3 startLocation = Vector3.zero,
-                targetLocation = Vector3.zero,
-                startRotation = Vector3.zero,
-                targetRotation = Vector3.zero;
+                targetLocation = Vector3.zero;
+        Quaternion startRotation = Quaternion.Euler(Vector3.zero),
+                   targetRotation = Quaternion.Euler(Vector3.zero);
 
         while (true)
         {
             // Perform movement
-            if (percentTravelled < 1.0f || percentRotated < 1.0f)
+            if (percentTravelled < 1.0f)
             {
                 // Calculate easing between current and target locations
                 percentTravelled += (Time.deltaTime * flySpeed) / moveDistance;
@@ -198,26 +195,16 @@ public class CameraController : MonoBehaviour
                 // Move to the new position and immediately go to the next iteration
                 if (trace != null) offset = newPos - trace.transform.position;
                 else active.transform.position = newPos;
-                
-                // Calculate easing between current and target rotations
-                percentRotated += (Time.deltaTime * flySpeed) / rotateAngle;
-                percentRotated = Mathf.Clamp01(percentRotated);
-                float easedPercentRotated = Ease(percentRotated);
 
-                // Calculate new rotation based on easing
-                Vector3 newRot = Vector3.Lerp(startRotation, targetRotation, easedPercentRotated);
-
-                // Move to the new position and immediately go to the next iteration
-                active.transform.eulerAngles = newRot;
+                // Start rotating towards the new angle without overshooting
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, Time.time * yawSpeed);
 
                 // Reset variables when done moving
-                if (percentTravelled >= 1 && percentRotated >= 1)
+                if (percentTravelled >= 1)
                 {
                     isMode = moveToMode;
                     moveToMode = -1;
                     moveDistance = 0.0f;
-                    rotateAngle = 0.0f;
-                    orientation = active.transform.eulerAngles;
 					
 					if (newTrace != null)
 					{
@@ -231,7 +218,7 @@ public class CameraController : MonoBehaviour
             else
             {
                 startLocation = active.transform.position;
-                startRotation = orientation;
+                startRotation = active.transform.rotation;
                 
                 // Change the camera mode by moving if (1) there is an intent to move, and (2) there is no camera for the current mode OR there is no camera for the desired mode
                 // Allow recentering on the current view by moving if the user moves the camera away from the starting point of the view (with an error of .5f) and presses the button for the current view
@@ -239,9 +226,8 @@ public class CameraController : MonoBehaviour
                 {
                     // Calculate distance to new location
                     targetLocation = (trace == null ? views[moveToMode] : trace.transform.position + views[moveToMode]);
-                    targetRotation = orientations[moveToMode];
+                    targetRotation = Quaternion.Euler(orientations[moveToMode]);
                     moveDistance = Vector3.Distance(active.transform.position, targetLocation);
-                    rotateAngle = Vector3.Distance(orientation, targetRotation);
                     
                     // Set things in motion
                     percentTravelled = 0.0f;
@@ -273,7 +259,6 @@ public class CameraController : MonoBehaviour
                 // Set active camera and its index
                 active = cameras[moveToMode];
                 isMode = moveToMode;
-
             }
 
             yield return null;
@@ -386,6 +371,7 @@ public class CameraController : MonoBehaviour
 		// Get ready to change the trace
         trace = null;
 		newTrace = target;
+        offset = Vector3.zero;
 
         // Based on the desired view, move the camera to a new position
         switch (viewMode)
@@ -413,6 +399,7 @@ public class CameraController : MonoBehaviour
 		// Get ready to change the trace
         trace = null;
 		newTrace = target;
+        offset = Vector3.zero;
 
         // Based on the desired view and settings, change the parameters and move the camera to a new position
         switch (viewMode)
