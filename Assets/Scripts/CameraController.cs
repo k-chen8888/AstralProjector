@@ -29,7 +29,7 @@ public class CameraController : MonoBehaviour
     private int moveToMode = -1;
     private int isMode = (int)CameraMode.FirstPerson; // Game starts in first person
     private float percentTravelled = 1.0f;
-    private float percentRotated = 1.0f;
+    private bool doneRotating = true;
 
     // 3 cameras that the script can switch between to change views
     public Camera[] cameras = new Camera[3];
@@ -133,7 +133,7 @@ public class CameraController : MonoBehaviour
 	{
         while (true)
         {
-            if (percentTravelled >= 1.0)
+            if (percentTravelled >= 1.0 && doneRotating)
             {
 				Vector3 rotation = new Vector3(0.0f, yawSpeed * Input.GetAxis("CameraPanLeftRight"), 0.0f);
                 active.transform.Rotate(rotation, Space.Self);
@@ -176,31 +176,37 @@ public class CameraController : MonoBehaviour
         float moveDistance = 0.0f;
         Vector3 startLocation = Vector3.zero,
                 targetLocation = Vector3.zero;
-        Quaternion startRotation = Quaternion.Euler(Vector3.zero),
-                   targetRotation = Quaternion.Euler(Vector3.zero);
+        Quaternion targetRotation = Quaternion.Euler(Vector3.zero);
 
         while (true)
         {
             // Perform movement
-            if (percentTravelled < 1.0f)
+            if (percentTravelled < 1.0f || !doneRotating)
             {
-                // Calculate easing between current and target locations
-                percentTravelled += (Time.deltaTime * flySpeed) / moveDistance;
-                percentTravelled = Mathf.Clamp01(percentTravelled);
-                float easedPercent = Ease(percentTravelled);
+				if (percentTravelled < 1.0f)
+				{
+					// Calculate easing between current and target locations
+					percentTravelled += (Time.deltaTime * flySpeed) / moveDistance;
+					percentTravelled = Mathf.Clamp01(percentTravelled);
+					float easedPercent = Ease(percentTravelled);
 
-                // Calculate new position based on easing
-                Vector3 newPos = Vector3.Lerp(startLocation, targetLocation, easedPercent);
+					// Calculate new position based on easing
+					Vector3 newPos = Vector3.Lerp(startLocation, targetLocation, easedPercent);
 
-                // Move to the new position and immediately go to the next iteration
-                if (trace != null) offset = newPos - trace.transform.position;
-                else active.transform.position = newPos;
-
-                // Start rotating towards the new angle without overshooting
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, Time.time * yawSpeed);
-
-                // Reset variables when done moving
-                if (percentTravelled >= 1)
+					// Move to the new position and immediately go to the next iteration
+					if (trace != null) offset = newPos - trace.transform.position;
+					else active.transform.position = newPos;
+				}
+				
+				if (!doneRotating)
+				{
+					// Start rotating towards the new angle without overshooting
+					active.transform.rotation = Quaternion.RotateTowards(active.transform.rotation, targetRotation, Time.time * yawSpeed);
+					doneRotating = active.transform.rotation == targetRotation;
+				}
+				
+                // Reset variables when done moving and rotating
+                if (percentTravelled >= 1 && doneRotating)
                 {
                     isMode = moveToMode;
                     moveToMode = -1;
@@ -218,7 +224,6 @@ public class CameraController : MonoBehaviour
             else
             {
                 startLocation = active.transform.position;
-                startRotation = active.transform.rotation;
                 
                 // Change the camera mode by moving if (1) there is an intent to move, and (2) there is no camera for the current mode OR there is no camera for the desired mode
                 // Allow recentering on the current view by moving if the user moves the camera away from the starting point of the view (with an error of .5f) and presses the button for the current view
@@ -231,7 +236,7 @@ public class CameraController : MonoBehaviour
                     
                     // Set things in motion
                     percentTravelled = 0.0f;
-                    percentRotated = 0.0f;
+                    doneRotating = false;
                 }
                 else
                 {
